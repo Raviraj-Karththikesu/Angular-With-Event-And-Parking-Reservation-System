@@ -1,38 +1,45 @@
 using Event_and_parking_reservation_system.Data;
 using Microsoft.EntityFrameworkCore;
 
-var builder = WebApplication.CreateBuilder(args);
-
-// Add Controllers
-builder.Services.AddControllers();
-
-// Add Swagger/OpenAPI
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// Register AppDbContext with SQL Server
-builder.Services.AddDbContext<AppDbContext>(options =>
+namespace Event_and_parking_reservation_system
 {
-    string? connectionString =
-        builder.Configuration.GetConnectionString(
-            "DefaultConnection");
+    public class Program
+    {
+        public static void Main(string[] args)
+        {
+            var builder = WebApplication.CreateBuilder(args);
 
-    options.UseSqlServer(connectionString);
-});
+            builder.Services.AddControllers();
 
-var app = builder.Build();
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
 
-// Enable Swagger only during development
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
+            string connectionString =
+                builder.Configuration.GetConnectionString(
+                    "DefaultConnection")
+                ?? throw new InvalidOperationException(
+                    "DefaultConnection was not found.");
+
+            builder.Services.AddDbContext<AppDbContext>(options =>
+            {
+                options.UseSqlServer(connectionString);
+            });
+
+            var app = builder.Build();
+
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseSwagger();
+                app.UseSwaggerUI();
+            }
+
+            app.UseHttpsRedirection();
+
+            app.UseAuthorization();
+
+            app.MapControllers();
+
+            app.Run();
+        }
+    }
 }
-
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
-app.MapControllers();
-
-app.Run();
