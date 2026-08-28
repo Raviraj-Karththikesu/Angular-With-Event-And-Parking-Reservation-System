@@ -1,6 +1,12 @@
-﻿namespace Event_and_parking_reservation_system.DTOs.Common
+﻿namespace Event_and_parking_reservation_system.DTOs.Common;
+
+public class ApiResponseDto<T>
 {
-    public class ApiResponseDto
-    {
-    }
+    public bool Success { get; set; }
+
+    public string Message { get; set; } = string.Empty;
+
+    public T? Data { get; set; }
+
+    public List<string> Errors { get; set; } = new();
 }
