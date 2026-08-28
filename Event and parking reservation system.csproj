@@ -22,7 +22,6 @@
 
   <ItemGroup>
     <Folder Include="Controllers\" />
-    <Folder Include="Configurations\" />
     <Folder Include="Interfaces\" />
     <Folder Include="BackgroundServices\" />
     <Folder Include="Helpers\" />
