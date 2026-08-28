@@ -1,6 +1,6 @@
 ﻿using Event_and_parking_reservation_system.Models;
 
-namespace EventParking.Api.Models;
+namespace Event_and_parking_reservation_system.Models;
 
 public class Venue
 {

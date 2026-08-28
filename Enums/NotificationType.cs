@@ -1,4 +1,4 @@
-﻿namespace EventParking.Api.Enums;
+﻿namespace Event_and_parking_reservation_system.Models;
 
 public enum NotificationType
 {

@@ -1,6 +1,6 @@
-﻿using EventParking.Api.Enums;
+﻿using Event_and_parking_reservation_system.Enums;
 
-namespace EventParking.Api.Models;
+namespace Event_and_parking_reservation_system.Models;
 
 public class Customer
 {
@@ -31,4 +31,10 @@ public class Customer
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedAt { get; set; }
+
+    public ICollection<Booking> Bookings { get; set; }
+    = new List<Booking>();
+
+    public ICollection<Notification> Notifications { get; set; }
+        = new List<Notification>();
 }

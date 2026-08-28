@@ -1,4 +1,4 @@
-﻿namespace EventParking.Api.Models;
+﻿namespace Event_and_parking_reservation_system.Models;
 
 public class Event
 {
@@ -29,4 +29,13 @@ public class Event
     public Venue Venue { get; set; } = null!;
 
     public EventCategory EventCategory { get; set; } = null!;
+
+    public ICollection<Seat> Seats { get; set; }
+    = new List<Seat>();
+
+    public ICollection<ParkingSlot> ParkingSlots { get; set; }
+        = new List<ParkingSlot>();
+
+    public ICollection<Booking> Bookings { get; set; }
+        = new List<Booking>();
 }
