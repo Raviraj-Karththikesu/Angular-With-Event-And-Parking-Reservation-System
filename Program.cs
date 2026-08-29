@@ -7,6 +7,11 @@ using Event_and_parking_reservation_system.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Event_and_parking_reservation_system.Middleware;
+using System.Text;
+using Event_and_parking_reservation_system.Options;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 
 namespace Event_and_parking_reservation_system
 {
@@ -19,7 +24,40 @@ namespace Event_and_parking_reservation_system
             builder.Services.AddControllers();
 
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+
+            builder.Services.AddSwaggerGen(options =>
+            {
+                options.AddSecurityDefinition(
+                    "Bearer",
+                    new OpenApiSecurityScheme
+                    {
+                        Name = "Authorization",
+                        Type = SecuritySchemeType.Http,
+                        Scheme = "bearer",
+                        BearerFormat = "JWT",
+                        In = ParameterLocation.Header,
+                        Description =
+                            "Enter the JWT access token."
+                    }
+                );
+
+                options.AddSecurityRequirement(
+                    new OpenApiSecurityRequirement
+                    {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                },
+                Array.Empty<string>()
+            }
+                    }
+                );
+            });
 
             string connectionString =
                 builder.Configuration.GetConnectionString(
@@ -41,6 +79,69 @@ namespace Event_and_parking_reservation_system
                 PasswordHasher<Customer>
             >();
 
+            builder.Services.AddScoped<
+                IAuthService, AuthService>();
+
+            builder.Services.AddScoped<
+    IJwtTokenService,
+    JwtTokenService
+>();
+
+            builder.Services.Configure<JwtSettings>(
+    builder.Configuration.GetSection(JwtSettings.SectionName)
+);
+
+            JwtSettings jwtSettings =
+                builder.Configuration
+                    .GetSection(JwtSettings.SectionName)
+                    .Get<JwtSettings>()
+                ?? throw new InvalidOperationException(
+                    "JWT settings are not configured."
+                );
+
+            if (string.IsNullOrWhiteSpace(jwtSettings.Key))
+            {
+                throw new InvalidOperationException(
+                    "JWT secret key is not configured."
+                );
+            }
+
+            builder.Services
+    .AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme =
+            JwtBearerDefaults.AuthenticationScheme;
+
+        options.DefaultChallengeScheme =
+            JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters =
+            new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuer = jwtSettings.Issuer,
+
+                ValidateAudience = true,
+                ValidAudience = jwtSettings.Audience,
+
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey =
+                    new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(
+                            jwtSettings.Key
+                        )
+                    ),
+
+                ValidateLifetime = true,
+
+                ClockSkew = TimeSpan.Zero
+            };
+    });
+
+            builder.Services.AddAuthorization();
+
             var app = builder.Build();
 
             app.UseMiddleware<ExceptionHandlingMiddleware>();
@@ -52,6 +153,8 @@ namespace Event_and_parking_reservation_system
             }
 
             app.UseHttpsRedirection();
+
+            app.UseAuthentication();
 
             app.UseAuthorization();
 
