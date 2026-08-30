@@ -11,6 +11,9 @@ namespace Event_and_parking_reservation_system.Interfaces.Repositories
         Task<Customer?> GetByEmailVerificationTokenHashAsync(
     string tokenHash
 );
+        Task<Customer?> GetByPasswordResetTokenHashAsync(
+    string tokenHash
+);
 
         Task<bool> EmailExistsAsync(string email);
 
