@@ -9,5 +9,17 @@ namespace Event_and_parking_reservation_system.Interfaces.Services
         );
 
         Task<CustomerResponseDto?> GetByIdAsync(int customerId);
+
+        Task<List<CustomerListItemDto>> GetAllAsync();
+
+        Task<CustomerResponseDto> UpdateStatusAsync(
+            int customerId,
+            UpdateCustomerStatusDto updateStatusDto
+        );
+
+        Task<CustomerResponseDto> UpdateProfileAsync(
+    int customerId,
+    UpdateCustomerProfileDto updateProfileDto
+);
     }
 }
