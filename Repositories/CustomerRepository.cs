@@ -64,5 +64,14 @@ namespace Event_and_parking_reservation_system.Repositories
         {
             return await _context.SaveChangesAsync() > 0;
         }
+
+        public async Task<Customer?>
+    GetByEmailVerificationTokenHashAsync(string tokenHash)
+        {
+            return await _context.Customers
+                .FirstOrDefaultAsync(customer =>
+                    customer.EmailVerificationTokenHash == tokenHash
+                );
+        }
     }
 }
