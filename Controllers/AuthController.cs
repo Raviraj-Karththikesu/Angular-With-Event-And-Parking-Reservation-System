@@ -13,13 +13,17 @@ namespace Event_and_parking_reservation_system.Controllers
         private readonly IAuthService _authService;
         private readonly IEmailVerificationService
             _emailVerificationService;
+        private readonly IPasswordResetService 
+            _passwordResetService;
 
         public AuthController(
-            IAuthService authService,
-            IEmailVerificationService emailVerificationService)
+    IAuthService authService,
+    IEmailVerificationService emailVerificationService,
+    IPasswordResetService passwordResetService)
         {
             _authService = authService;
             _emailVerificationService = emailVerificationService;
+            _passwordResetService = passwordResetService;
         }
 
         [AllowAnonymous]
@@ -122,6 +126,47 @@ namespace Event_and_parking_reservation_system.Controllers
                 message =
                     "If an unverified account exists, " +
                     "a new verification email has been sent."
+            });
+        }
+
+        [AllowAnonymous]
+        [HttpPost("forgot-password")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ForgotPassword(
+    [FromBody]
+    ForgotPasswordRequestDto requestDto)
+        {
+            await _passwordResetService
+                .RequestPasswordResetAsync(
+                    requestDto.Email
+                );
+
+            return Ok(new
+            {
+                message =
+                    "If an account exists with this email, " +
+                    "a password reset link has been sent."
+            });
+        }
+
+        [AllowAnonymous]
+        [HttpPost("reset-password")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> ResetPassword(
+    [FromBody]
+    ResetPasswordRequestDto requestDto)
+        {
+            await _passwordResetService
+                .ResetPasswordAsync(
+                    requestDto.Token,
+                    requestDto.NewPassword
+                );
+
+            return Ok(new
+            {
+                message = "Password reset successfully."
             });
         }
     }

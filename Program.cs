@@ -90,9 +90,13 @@ namespace Event_and_parking_reservation_system
                 IEmailService, DevelopmentEmailService>();
 
             builder.Services.AddScoped<
-    IEmailVerificationService,
-    EmailVerificationService
->();
+            IEmailVerificationService,
+            EmailVerificationService
+             >();
+            builder.Services.AddScoped<
+            IPasswordResetService,
+            PasswordResetService
+            >();
 
             builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection(JwtSettings.SectionName)
