@@ -4,6 +4,7 @@ namespace Event_and_parking_reservation_system.Interfaces.Repositories
 {
     public interface ICustomerRepository
     {
+        Task<List<Customer>> GetAllAsync();
         Task<Customer?> GetByIdAsync(int customerId);
 
         Task<Customer?> GetByEmailAsync(string email);

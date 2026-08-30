@@ -84,5 +84,15 @@ namespace Event_and_parking_reservation_system.Repositories
                     tokenHash
                 );
         }
+
+        public async Task<List<Customer>> GetAllAsync()
+        {
+            return await _context.Customers
+                .AsNoTracking()
+                .OrderByDescending(customer =>
+                    customer.CreatedAt
+                )
+                .ToListAsync();
+        }
     }
 }

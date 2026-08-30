@@ -1,6 +1,8 @@
 ﻿using Event_and_parking_reservation_system.DTOs.Customers;
 using Event_and_parking_reservation_system.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Event_and_parking_reservation_system.Controllers
 {
@@ -8,25 +10,36 @@ namespace Event_and_parking_reservation_system.Controllers
     [Route("api/[controller]")]
     public class CustomersController : ControllerBase
     {
-        private readonly ICustomerService _customerService;
+        private readonly ICustomerService
+            _customerService;
 
-        public CustomersController(ICustomerService customerService)
+        public CustomersController(
+            ICustomerService customerService)
         {
             _customerService = customerService;
         }
 
+        [AllowAnonymous]
         [HttpPost("register")]
         [ProducesResponseType(
             typeof(CustomerResponseDto),
             StatusCodes.Status201Created
         )]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public async Task<ActionResult<CustomerResponseDto>> Register(
-            [FromBody] RegisterCustomerDto registerCustomerDto)
+        [ProducesResponseType(
+            StatusCodes.Status400BadRequest
+        )]
+        [ProducesResponseType(
+            StatusCodes.Status409Conflict
+        )]
+        public async Task<ActionResult<CustomerResponseDto>>
+            Register(
+                [FromBody]
+                RegisterCustomerDto registerCustomerDto)
         {
             CustomerResponseDto customer =
-                await _customerService.RegisterAsync(registerCustomerDto);
+                await _customerService.RegisterAsync(
+                    registerCustomerDto
+                );
 
             return CreatedAtAction(
                 nameof(GetById),
@@ -35,13 +48,45 @@ namespace Event_and_parking_reservation_system.Controllers
             );
         }
 
+        [Authorize(Roles = "Admin")]
+        [HttpGet]
+        [ProducesResponseType(
+            typeof(List<CustomerListItemDto>),
+            StatusCodes.Status200OK
+        )]
+        [ProducesResponseType(
+            StatusCodes.Status401Unauthorized
+        )]
+        [ProducesResponseType(
+            StatusCodes.Status403Forbidden
+        )]
+        public async Task<
+            ActionResult<List<CustomerListItemDto>>>
+            GetAll()
+        {
+            List<CustomerListItemDto> customers =
+                await _customerService.GetAllAsync();
+
+            return Ok(customers);
+        }
+
+        [Authorize(Roles = "Admin")]
         [HttpGet("{id:int}")]
         [ProducesResponseType(
             typeof(CustomerResponseDto),
             StatusCodes.Status200OK
         )]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<CustomerResponseDto>> GetById(int id)
+        [ProducesResponseType(
+            StatusCodes.Status401Unauthorized
+        )]
+        [ProducesResponseType(
+            StatusCodes.Status403Forbidden
+        )]
+        [ProducesResponseType(
+            StatusCodes.Status404NotFound
+        )]
+        public async Task<ActionResult<CustomerResponseDto>>
+            GetById(int id)
         {
             CustomerResponseDto? customer =
                 await _customerService.GetByIdAsync(id);
@@ -50,9 +95,138 @@ namespace Event_and_parking_reservation_system.Controllers
             {
                 return NotFound(new
                 {
-                    message = $"Customer with ID {id} was not found."
+                    message =
+                        $"Customer with ID {id} was not found."
                 });
             }
+
+            return Ok(customer);
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPatch("{id:int}/status")]
+        [ProducesResponseType(
+            typeof(CustomerResponseDto),
+            StatusCodes.Status200OK
+        )]
+        [ProducesResponseType(
+            StatusCodes.Status400BadRequest
+        )]
+        [ProducesResponseType(
+            StatusCodes.Status401Unauthorized
+        )]
+        [ProducesResponseType(
+            StatusCodes.Status403Forbidden
+        )]
+        [ProducesResponseType(
+            StatusCodes.Status404NotFound
+        )]
+        public async Task<ActionResult<CustomerResponseDto>>
+            UpdateStatus(
+                int id,
+                [FromBody]
+                UpdateCustomerStatusDto updateStatusDto)
+        {
+            CustomerResponseDto customer =
+                await _customerService
+                    .UpdateStatusAsync(
+                        id,
+                        updateStatusDto
+                    );
+
+            return Ok(customer);
+        }
+
+        [Authorize]
+        [HttpGet("me")]
+        [ProducesResponseType(
+    typeof(CustomerResponseDto),
+    StatusCodes.Status200OK
+)]
+        [ProducesResponseType(
+    StatusCodes.Status401Unauthorized
+)]
+        [ProducesResponseType(
+    StatusCodes.Status404NotFound
+)]
+        public async Task<ActionResult<CustomerResponseDto>>
+    GetMyProfile()
+        {
+            string? customerIdValue =
+                User.FindFirstValue(
+                    ClaimTypes.NameIdentifier
+                );
+
+            if (!int.TryParse(
+                customerIdValue,
+                out int customerId))
+            {
+                return Unauthorized(new
+                {
+                    message = "Invalid authentication token."
+                });
+            }
+
+            CustomerResponseDto? customer =
+                await _customerService.GetByIdAsync(
+                    customerId
+                );
+
+            if (customer is null)
+            {
+                return NotFound(new
+                {
+                    message = "Customer was not found."
+                });
+            }
+
+            return Ok(customer);
+        }
+
+        [Authorize]
+        [HttpPut("me")]
+        [ProducesResponseType(
+    typeof(CustomerResponseDto),
+    StatusCodes.Status200OK
+)]
+        [ProducesResponseType(
+    StatusCodes.Status400BadRequest
+)]
+        [ProducesResponseType(
+    StatusCodes.Status401Unauthorized
+)]
+        [ProducesResponseType(
+    StatusCodes.Status404NotFound
+)]
+        [ProducesResponseType(
+    StatusCodes.Status409Conflict
+)]
+        public async Task<ActionResult<CustomerResponseDto>>
+    UpdateMyProfile(
+        [FromBody]
+        UpdateCustomerProfileDto updateProfileDto)
+        {
+            string? customerIdValue =
+                User.FindFirstValue(
+                    ClaimTypes.NameIdentifier
+                );
+
+            if (!int.TryParse(
+                customerIdValue,
+                out int customerId))
+            {
+                return Unauthorized(new
+                {
+                    message = "Invalid authentication token."
+                });
+            }
+
+            CustomerResponseDto customer =
+                await _customerService
+                    .UpdateProfileAsync(
+                        customerId,
+                        updateProfileDto
+                    );
 
             return Ok(customer);
         }
