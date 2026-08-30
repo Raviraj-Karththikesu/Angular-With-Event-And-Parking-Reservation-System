@@ -8,6 +8,10 @@ namespace Event_and_parking_reservation_system.Interfaces.Repositories
 
         Task<Customer?> GetByEmailAsync(string email);
 
+        Task<Customer?> GetByEmailVerificationTokenHashAsync(
+    string tokenHash
+);
+
         Task<bool> EmailExistsAsync(string email);
 
         Task<bool> PhoneNumberExistsAsync(string phoneNumber);
@@ -17,5 +21,7 @@ namespace Event_and_parking_reservation_system.Interfaces.Repositories
         void Update(Customer customer);
 
         Task<bool> SaveChangesAsync();
+
+
     }
 }

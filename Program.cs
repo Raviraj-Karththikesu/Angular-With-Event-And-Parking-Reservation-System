@@ -86,6 +86,13 @@ namespace Event_and_parking_reservation_system
     IJwtTokenService,
     JwtTokenService
 >();
+            builder.Services.AddScoped<
+                IEmailService, DevelopmentEmailService>();
+
+            builder.Services.AddScoped<
+    IEmailVerificationService,
+    EmailVerificationService
+>();
 
             builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection(JwtSettings.SectionName)
@@ -141,6 +148,12 @@ namespace Event_and_parking_reservation_system
     });
 
             builder.Services.AddAuthorization();
+
+            builder.Services.Configure<EmailSettings>(
+    builder.Configuration.GetSection(
+        EmailSettings.SectionName
+    )
+);
 
             var app = builder.Build();
 

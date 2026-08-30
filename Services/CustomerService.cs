@@ -12,23 +12,31 @@ namespace Event_and_parking_reservation_system.Services
     {
         private readonly ICustomerRepository _customerRepository;
         private readonly IPasswordHasher<Customer> _passwordHasher;
+        private readonly IEmailVerificationService
+            _emailVerificationService;
 
         public CustomerService(
             ICustomerRepository customerRepository,
-            IPasswordHasher<Customer> passwordHasher)
+            IPasswordHasher<Customer> passwordHasher,
+            IEmailVerificationService emailVerificationService)
         {
             _customerRepository = customerRepository;
             _passwordHasher = passwordHasher;
+            _emailVerificationService = emailVerificationService;
         }
 
         public async Task<CustomerResponseDto> RegisterAsync(
             RegisterCustomerDto registerCustomerDto)
         {
             string normalizedEmail =
-                registerCustomerDto.Email.Trim().ToLowerInvariant();
+                registerCustomerDto.Email
+                    .Trim()
+                    .ToLowerInvariant();
 
             bool emailExists =
-                await _customerRepository.EmailExistsAsync(normalizedEmail);
+                await _customerRepository.EmailExistsAsync(
+                    normalizedEmail
+                );
 
             if (emailExists)
             {
@@ -46,9 +54,10 @@ namespace Event_and_parking_reservation_system.Services
                     registerCustomerDto.PhoneNumber.Trim();
 
                 bool phoneNumberExists =
-                    await _customerRepository.PhoneNumberExistsAsync(
-                        normalizedPhoneNumber
-                    );
+                    await _customerRepository
+                        .PhoneNumberExistsAsync(
+                            normalizedPhoneNumber
+                        );
 
                 if (phoneNumberExists)
                 {
@@ -60,10 +69,15 @@ namespace Event_and_parking_reservation_system.Services
 
             Customer customer = new Customer
             {
-                FullName = registerCustomerDto.FullName.Trim(),
+                FullName =
+                    registerCustomerDto.FullName.Trim(),
+
                 Email = normalizedEmail,
+
                 PhoneNumber = normalizedPhoneNumber,
+
                 EmailVerified = false,
+
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -86,6 +100,9 @@ namespace Event_and_parking_reservation_system.Services
                 );
             }
 
+            await _emailVerificationService
+                .SendVerificationEmailAsync(customer);
+
             return MapToResponseDto(customer);
         }
 
@@ -93,7 +110,9 @@ namespace Event_and_parking_reservation_system.Services
             int customerId)
         {
             Customer? customer =
-                await _customerRepository.GetByIdAsync(customerId);
+                await _customerRepository.GetByIdAsync(
+                    customerId
+                );
 
             if (customer is null)
             {
