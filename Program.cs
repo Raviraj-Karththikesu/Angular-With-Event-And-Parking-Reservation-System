@@ -74,6 +74,10 @@ namespace Event_and_parking_reservation_system
 
             builder.Services.AddScoped<ICustomerService, CustomerService>();
 
+            builder.Services.AddScoped<IParkingSlotRepository, ParkingSlotRepository>();
+
+            builder.Services.AddScoped<IParkingSlotService, ParkingSlotService>();
+
             builder.Services.AddScoped<
                 IPasswordHasher<Customer>,
                 PasswordHasher<Customer>
