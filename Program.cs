@@ -173,6 +173,8 @@ namespace Event_and_parking_reservation_system
 
             app.UseAuthentication();
 
+            app.UseMiddleware<ActiveCustomerMiddleware>();
+
             app.UseAuthorization();
 
             app.MapControllers();
