@@ -1,8 +1,9 @@
-﻿using Event_and_parking_reservation_system.DTOs.Customers;
+﻿using System.Security.Claims;
+using Event_and_parking_reservation_system.DTOs.Customers;
 using Event_and_parking_reservation_system.Interfaces.Services;
+using Event_and_parking_reservation_system.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace Event_and_parking_reservation_system.Controllers
 {
@@ -10,8 +11,7 @@ namespace Event_and_parking_reservation_system.Controllers
     [Route("api/[controller]")]
     public class CustomersController : ControllerBase
     {
-        private readonly ICustomerService
-            _customerService;
+        private readonly ICustomerService _customerService;
 
         public CustomersController(
             ICustomerService customerService)
@@ -48,7 +48,9 @@ namespace Event_and_parking_reservation_system.Controllers
             );
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(
+            Roles = nameof(UserRole.Admin)
+        )]
         [HttpGet]
         [ProducesResponseType(
             typeof(List<CustomerListItemDto>),
@@ -62,15 +64,19 @@ namespace Event_and_parking_reservation_system.Controllers
         )]
         public async Task<
             ActionResult<List<CustomerListItemDto>>>
-            GetAll()
+            GetAll([FromQuery] string? search)
         {
             List<CustomerListItemDto> customers =
-                await _customerService.GetAllAsync();
+                await _customerService.SearchAsync(
+                    search
+                );
 
             return Ok(customers);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(
+            Roles = nameof(UserRole.Admin)
+        )]
         [HttpGet("{id:int}")]
         [ProducesResponseType(
             typeof(CustomerResponseDto),
@@ -89,7 +95,9 @@ namespace Event_and_parking_reservation_system.Controllers
             GetById(int id)
         {
             CustomerResponseDto? customer =
-                await _customerService.GetByIdAsync(id);
+                await _customerService.GetByIdAsync(
+                    id
+                );
 
             if (customer is null)
             {
@@ -103,7 +111,9 @@ namespace Event_and_parking_reservation_system.Controllers
             return Ok(customer);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(
+            Roles = nameof(UserRole.Admin)
+        )]
         [HttpPatch("{id:int}/status")]
         [ProducesResponseType(
             typeof(CustomerResponseDto),
@@ -140,17 +150,17 @@ namespace Event_and_parking_reservation_system.Controllers
         [Authorize]
         [HttpGet("me")]
         [ProducesResponseType(
-    typeof(CustomerResponseDto),
-    StatusCodes.Status200OK
-)]
+            typeof(CustomerResponseDto),
+            StatusCodes.Status200OK
+        )]
         [ProducesResponseType(
-    StatusCodes.Status401Unauthorized
-)]
+            StatusCodes.Status401Unauthorized
+        )]
         [ProducesResponseType(
-    StatusCodes.Status404NotFound
-)]
+            StatusCodes.Status404NotFound
+        )]
         public async Task<ActionResult<CustomerResponseDto>>
-    GetMyProfile()
+            GetMyProfile()
         {
             string? customerIdValue =
                 User.FindFirstValue(
@@ -163,7 +173,8 @@ namespace Event_and_parking_reservation_system.Controllers
             {
                 return Unauthorized(new
                 {
-                    message = "Invalid authentication token."
+                    message =
+                        "Invalid authentication token."
                 });
             }
 
@@ -176,7 +187,8 @@ namespace Event_and_parking_reservation_system.Controllers
             {
                 return NotFound(new
                 {
-                    message = "Customer was not found."
+                    message =
+                        "Customer was not found."
                 });
             }
 
@@ -186,25 +198,25 @@ namespace Event_and_parking_reservation_system.Controllers
         [Authorize]
         [HttpPut("me")]
         [ProducesResponseType(
-    typeof(CustomerResponseDto),
-    StatusCodes.Status200OK
-)]
+            typeof(CustomerResponseDto),
+            StatusCodes.Status200OK
+        )]
         [ProducesResponseType(
-    StatusCodes.Status400BadRequest
-)]
+            StatusCodes.Status400BadRequest
+        )]
         [ProducesResponseType(
-    StatusCodes.Status401Unauthorized
-)]
+            StatusCodes.Status401Unauthorized
+        )]
         [ProducesResponseType(
-    StatusCodes.Status404NotFound
-)]
+            StatusCodes.Status404NotFound
+        )]
         [ProducesResponseType(
-    StatusCodes.Status409Conflict
-)]
+            StatusCodes.Status409Conflict
+        )]
         public async Task<ActionResult<CustomerResponseDto>>
-    UpdateMyProfile(
-        [FromBody]
-        UpdateCustomerProfileDto updateProfileDto)
+            UpdateMyProfile(
+                [FromBody]
+                UpdateCustomerProfileDto updateProfileDto)
         {
             string? customerIdValue =
                 User.FindFirstValue(
@@ -217,7 +229,8 @@ namespace Event_and_parking_reservation_system.Controllers
             {
                 return Unauthorized(new
                 {
-                    message = "Invalid authentication token."
+                    message =
+                        "Invalid authentication token."
                 });
             }
 

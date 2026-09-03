@@ -21,5 +21,9 @@ namespace Event_and_parking_reservation_system.Interfaces.Services
     int customerId,
     UpdateCustomerProfileDto updateProfileDto
 );
+
+        Task<List<CustomerListItemDto>> SearchAsync(
+    string? search
+);
     }
 }
