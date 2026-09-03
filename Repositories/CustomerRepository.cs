@@ -94,5 +94,35 @@ namespace Event_and_parking_reservation_system.Repositories
                 )
                 .ToListAsync();
         }
+
+        public async Task<List<Customer>> SearchAsync(
+    string? search)
+        {
+            IQueryable<Customer> query =
+                _context.Customers
+                    .AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                string searchTerm =
+                    search.Trim().ToLowerInvariant();
+
+                query = query.Where(customer =>
+                    customer.FullName
+                        .ToLower()
+                        .Contains(searchTerm)
+                    ||
+                    customer.Email
+                        .ToLower()
+                        .Contains(searchTerm)
+                );
+            }
+
+            return await query
+                .OrderByDescending(customer =>
+                    customer.CreatedAt
+                )
+                .ToListAsync();
+        }
     }
 }
