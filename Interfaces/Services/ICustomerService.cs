@@ -25,5 +25,9 @@ namespace Event_and_parking_reservation_system.Interfaces.Services
         Task<List<CustomerListItemDto>> SearchAsync(
     string? search
 );
+        Task<CustomerResponseDto> DeactivateAsync(int customerId);
+
+        Task<CustomerResponseDto> ReactivateAsync(int customerId);
+
     }
 }

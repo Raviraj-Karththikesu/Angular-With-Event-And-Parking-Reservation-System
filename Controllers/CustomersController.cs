@@ -243,5 +243,41 @@ namespace Event_and_parking_reservation_system.Controllers
 
             return Ok(customer);
         }
+
+        [Authorize(Roles = nameof(UserRole.Admin))]
+        [HttpDelete("{id:int}")]
+        [ProducesResponseType(
+    typeof(CustomerResponseDto),
+    StatusCodes.Status200OK
+)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<CustomerResponseDto>>
+    Deactivate(int id)
+        {
+            CustomerResponseDto customer =
+                await _customerService.DeactivateAsync(id);
+
+            return Ok(customer);
+        }
+
+        [Authorize(Roles = nameof(UserRole.Admin))]
+        [HttpPost("{id:int}/reactivate")]
+        [ProducesResponseType(
+            typeof(CustomerResponseDto),
+            StatusCodes.Status200OK
+        )]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<CustomerResponseDto>>
+            Reactivate(int id)
+        {
+            CustomerResponseDto customer =
+                await _customerService.ReactivateAsync(id);
+
+            return Ok(customer);
+        }
     }
 }
