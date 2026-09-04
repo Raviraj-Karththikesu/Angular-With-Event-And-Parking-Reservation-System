@@ -332,5 +332,41 @@ namespace Event_and_parking_reservation_system.Services
                 UpdatedAt = customer.UpdatedAt
             };
         }
+
+        public async Task<List<CustomerListItemDto>>
+    SearchAsync(string? search)
+        {
+            List<Customer> customers =
+                await _customerRepository.SearchAsync(
+                    search
+                );
+
+            return customers
+                .Select(customer =>
+                    new CustomerListItemDto
+                    {
+                        CustomerId = customer.Id,
+
+                        FullName = customer.FullName,
+
+                        Email = customer.Email,
+
+                        PhoneNumber =
+                            customer.PhoneNumber,
+
+                        Role =
+                            customer.Role.ToString(),
+
+                        Status =
+                            customer.Status.ToString(),
+
+                        EmailVerified =
+                            customer.EmailVerified,
+
+                        CreatedAt =
+                            customer.CreatedAt
+                    })
+                .ToList();
+        }
     }
 }

@@ -71,12 +71,18 @@ namespace Event_and_parking_reservation_system
             });
 
             builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
-
             builder.Services.AddScoped<ICustomerService, CustomerService>();
 
-            builder.Services.AddScoped<IParkingReservationRepository, ParkingReservationRepository>();
 
-            builder.Services.AddScoped<IParkingReservationService, ParkingReservationService>();
+            builder.Services.AddScoped<IVenueRepository, VenueRepository>();
+            builder.Services.AddScoped<IVenueService, VenueService>();
+
+            builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+            builder.Services.AddScoped<ICategoryService, CategoryService>();
+
+            builder.Services.AddScoped<IEventRepository, EventRepository>();
+            builder.Services.AddScoped<IEventService, EventService>();
+
 
             builder.Services.AddScoped<
                 IPasswordHasher<Customer>,
@@ -176,6 +182,8 @@ namespace Event_and_parking_reservation_system
             app.UseHttpsRedirection();
 
             app.UseAuthentication();
+
+            app.UseMiddleware<ActiveCustomerMiddleware>();
 
             app.UseAuthorization();
 

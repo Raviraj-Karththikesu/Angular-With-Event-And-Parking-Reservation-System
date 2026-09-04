@@ -26,6 +26,10 @@ namespace Event_and_parking_reservation_system.Interfaces.Repositories
 
         Task<bool> SaveChangesAsync();
 
+        Task<List<Customer>> SearchAsync(
+    string? search
+);
+
 
     }
 }
