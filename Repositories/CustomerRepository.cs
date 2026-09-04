@@ -16,10 +16,7 @@ namespace Event_and_parking_reservation_system.Repositories
 
         public async Task<Customer?> GetByIdAsync(int customerId)
         {
-            return await _context.Customers
-                .AsNoTracking()
-                .FirstOrDefaultAsync(customer =>
-                    customer.Id == customerId);
+            return await _context.Customers.FindAsync(customerId);
         }
 
         public async Task<Customer?> GetByEmailAsync(string email)

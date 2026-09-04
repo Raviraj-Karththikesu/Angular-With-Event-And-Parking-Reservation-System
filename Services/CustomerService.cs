@@ -368,5 +368,91 @@ namespace Event_and_parking_reservation_system.Services
                     })
                 .ToList();
         }
+
+        public async Task<CustomerResponseDto> DeactivateAsync(
+    int customerId)
+        {
+            Customer? customer =
+                await _customerRepository.GetByIdAsync(customerId);
+
+            if (customer is null)
+            {
+                throw new NotFoundException(
+                    $"Customer with ID {customerId} was not found."
+                );
+            }
+
+            if (customer.Role == UserRole.Admin)
+            {
+                throw new AppException(
+                    "Administrator accounts cannot be deactivated.",
+                    StatusCodes.Status403Forbidden
+                );
+            }
+
+            if (customer.Status == CustomerStatus.Deactivated)
+            {
+                return MapToResponseDto(customer);
+            }
+
+            customer.Status = CustomerStatus.Deactivated;
+            customer.UpdatedAt = DateTime.UtcNow;
+
+            bool saved =
+                await _customerRepository.SaveChangesAsync();
+
+            if (!saved)
+            {
+                throw new AppException(
+                    "Customer deactivation failed.",
+                    StatusCodes.Status500InternalServerError
+                );
+            }
+
+            return MapToResponseDto(customer);
+        }
+
+        public async Task<CustomerResponseDto> ReactivateAsync(
+            int customerId)
+        {
+            Customer? customer =
+                await _customerRepository.GetByIdAsync(customerId);
+
+            if (customer is null)
+            {
+                throw new NotFoundException(
+                    $"Customer with ID {customerId} was not found."
+                );
+            }
+
+            if (customer.Role == UserRole.Admin)
+            {
+                throw new AppException(
+                    "Administrator account status cannot be changed here.",
+                    StatusCodes.Status403Forbidden
+                );
+            }
+
+            if (customer.Status == CustomerStatus.Active)
+            {
+                return MapToResponseDto(customer);
+            }
+
+            customer.Status = CustomerStatus.Active;
+            customer.UpdatedAt = DateTime.UtcNow;
+
+            bool saved =
+                await _customerRepository.SaveChangesAsync();
+
+            if (!saved)
+            {
+                throw new AppException(
+                    "Customer reactivation failed.",
+                    StatusCodes.Status500InternalServerError
+                );
+            }
+
+            return MapToResponseDto(customer);
+        }
     }
 }
