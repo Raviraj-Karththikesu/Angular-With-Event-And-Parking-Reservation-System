@@ -6,6 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Event_and_parking_reservation_system</RootNamespace>
     <UserSecretsId>659f509d-2de3-4ebb-b8aa-e2f1243f823e</UserSecretsId>
+	  <DefaultItemExcludes>
+		  $(DefaultItemExcludes);tests\**
+	  </DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -26,5 +29,13 @@
     <Folder Include="BackgroundServices\" />
     <Folder Include="Helpers\" />
   </ItemGroup>
+
+
+	<ItemGroup>
+		<Compile Remove="tests\**" />
+		<Content Remove="tests\**" />
+		<EmbeddedResource Remove="tests\**" />
+		<None Remove="tests\**" />
+	</ItemGroup>
 
 </Project>
