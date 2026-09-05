@@ -83,6 +83,10 @@ namespace Event_and_parking_reservation_system
             builder.Services.AddScoped<IEventRepository, EventRepository>();
             builder.Services.AddScoped<IEventService, EventService>();
 
+            builder.Services.AddScoped<IBookingSeatRepository, BookingSeatRepository>();
+
+            builder.Services.AddScoped<IBookingSeatService, BookingSeatService>();
+
 
             builder.Services.AddScoped<
                 IPasswordHasher<Customer>,
