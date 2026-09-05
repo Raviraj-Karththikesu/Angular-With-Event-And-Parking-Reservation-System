@@ -48,9 +48,7 @@ namespace Event_and_parking_reservation_system.Controllers
             );
         }
 
-        [Authorize(
-            Roles = nameof(UserRole.Admin)
-        )]
+        [Authorize(Roles = nameof(UserRole.Admin))]
         [HttpGet]
         [ProducesResponseType(
             typeof(List<CustomerListItemDto>),
@@ -74,9 +72,7 @@ namespace Event_and_parking_reservation_system.Controllers
             return Ok(customers);
         }
 
-        [Authorize(
-            Roles = nameof(UserRole.Admin)
-        )]
+        [Authorize(Roles = nameof(UserRole.Admin))]
         [HttpGet("{id:int}")]
         [ProducesResponseType(
             typeof(CustomerResponseDto),
@@ -95,9 +91,7 @@ namespace Event_and_parking_reservation_system.Controllers
             GetById(int id)
         {
             CustomerResponseDto? customer =
-                await _customerService.GetByIdAsync(
-                    id
-                );
+                await _customerService.GetByIdAsync(id);
 
             if (customer is null)
             {
@@ -111,9 +105,7 @@ namespace Event_and_parking_reservation_system.Controllers
             return Ok(customer);
         }
 
-        [Authorize(
-            Roles = nameof(UserRole.Admin)
-        )]
+        [Authorize(Roles = nameof(UserRole.Admin))]
         [HttpPatch("{id:int}/status")]
         [ProducesResponseType(
             typeof(CustomerResponseDto),
@@ -131,6 +123,9 @@ namespace Event_and_parking_reservation_system.Controllers
         [ProducesResponseType(
             StatusCodes.Status404NotFound
         )]
+        [ProducesResponseType(
+            StatusCodes.Status409Conflict
+        )]
         public async Task<ActionResult<CustomerResponseDto>>
             UpdateStatus(
                 int id,
@@ -138,11 +133,10 @@ namespace Event_and_parking_reservation_system.Controllers
                 UpdateCustomerStatusDto updateStatusDto)
         {
             CustomerResponseDto customer =
-                await _customerService
-                    .UpdateStatusAsync(
-                        id,
-                        updateStatusDto
-                    );
+                await _customerService.UpdateStatusAsync(
+                    id,
+                    updateStatusDto
+                );
 
             return Ok(customer);
         }
@@ -235,11 +229,10 @@ namespace Event_and_parking_reservation_system.Controllers
             }
 
             CustomerResponseDto customer =
-                await _customerService
-                    .UpdateProfileAsync(
-                        customerId,
-                        updateProfileDto
-                    );
+                await _customerService.UpdateProfileAsync(
+                    customerId,
+                    updateProfileDto
+                );
 
             return Ok(customer);
         }
@@ -247,14 +240,23 @@ namespace Event_and_parking_reservation_system.Controllers
         [Authorize(Roles = nameof(UserRole.Admin))]
         [HttpDelete("{id:int}")]
         [ProducesResponseType(
-    typeof(CustomerResponseDto),
-    StatusCodes.Status200OK
-)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+            typeof(CustomerResponseDto),
+            StatusCodes.Status200OK
+        )]
+        [ProducesResponseType(
+            StatusCodes.Status401Unauthorized
+        )]
+        [ProducesResponseType(
+            StatusCodes.Status403Forbidden
+        )]
+        [ProducesResponseType(
+            StatusCodes.Status404NotFound
+        )]
+        [ProducesResponseType(
+            StatusCodes.Status409Conflict
+        )]
         public async Task<ActionResult<CustomerResponseDto>>
-    Deactivate(int id)
+            Deactivate(int id)
         {
             CustomerResponseDto customer =
                 await _customerService.DeactivateAsync(id);
@@ -268,9 +270,15 @@ namespace Event_and_parking_reservation_system.Controllers
             typeof(CustomerResponseDto),
             StatusCodes.Status200OK
         )]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(
+            StatusCodes.Status401Unauthorized
+        )]
+        [ProducesResponseType(
+            StatusCodes.Status403Forbidden
+        )]
+        [ProducesResponseType(
+            StatusCodes.Status404NotFound
+        )]
         public async Task<ActionResult<CustomerResponseDto>>
             Reactivate(int id)
         {

@@ -2,6 +2,7 @@
 using Event_and_parking_reservation_system.Interfaces.Repositories;
 using Event_and_parking_reservation_system.Models;
 using Microsoft.EntityFrameworkCore;
+using Event_and_parking_reservation_system.Enums;
 
 namespace Event_and_parking_reservation_system.Repositories
 {
@@ -120,6 +121,41 @@ namespace Event_and_parking_reservation_system.Repositories
                     customer.CreatedAt
                 )
                 .ToListAsync();
+        }
+
+        public async Task<bool> HasActiveFutureBookingsAsync(
+    int customerId,
+    DateTime utcNow)
+        {
+            return await _context.Bookings
+                .AsNoTracking()
+                .AnyAsync(booking =>
+                    booking.CustomerId == customerId
+                    &&
+                    (
+                        booking.Status == BookingStatus.Pending
+                        ||
+                        booking.Status == BookingStatus.Confirmed
+                    )
+                    &&
+                    booking.Event.EndDateTime > utcNow
+                );
+        }
+
+        public async Task<Customer?>
+    GetByIdWithBookingsAsync(int customerId)
+        {
+            return await _context.Customers
+                .AsNoTracking()
+                .Include(customer =>
+                    customer.Bookings
+                )
+                .ThenInclude(booking =>
+                    booking.Event
+                )
+                .FirstOrDefaultAsync(customer =>
+                    customer.Id == customerId
+                );
         }
     }
 }
