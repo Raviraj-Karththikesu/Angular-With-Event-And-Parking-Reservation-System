@@ -125,11 +125,13 @@ namespace Event_and_parking_reservation_system.Services
         }
 
         public async Task<CustomerResponseDto?>
-            GetByIdAsync(int customerId)
+    GetByIdAsync(int customerId)
         {
             Customer? customer =
                 await _customerRepository
-                    .GetByIdAsync(customerId);
+                    .GetByIdWithBookingsAsync(
+                        customerId
+                    );
 
             if (customer is null)
             {
@@ -138,7 +140,6 @@ namespace Event_and_parking_reservation_system.Services
 
             return MapToResponseDto(customer);
         }
-
         public async Task<List<CustomerListItemDto>>
             GetAllAsync()
         {
@@ -176,22 +177,10 @@ namespace Event_and_parking_reservation_system.Services
         }
 
         public async Task<CustomerResponseDto>
-            UpdateStatusAsync(
-                int customerId,
-                UpdateCustomerStatusDto
-                    updateStatusDto)
+    UpdateStatusAsync(
+        int customerId,
+        UpdateCustomerStatusDto updateStatusDto)
         {
-            Customer? customer =
-                await _customerRepository
-                    .GetByIdAsync(customerId);
-
-            if (customer is null)
-            {
-                throw new NotFoundException(
-                    "Customer was not found."
-                );
-            }
-
             bool validStatus =
                 Enum.TryParse(
                     updateStatusDto.Status,
@@ -211,25 +200,13 @@ namespace Event_and_parking_reservation_system.Services
                 );
             }
 
-            customer.Status = customerStatus;
-            customer.UpdatedAt = DateTime.UtcNow;
-
-            _customerRepository.Update(customer);
-
-            bool saved =
-                await _customerRepository
-                    .SaveChangesAsync();
-
-            if (!saved)
+            if (customerStatus ==
+                CustomerStatus.Deactivated)
             {
-                throw new AppException(
-                    "Customer status update failed.",
-                    StatusCodes
-                        .Status500InternalServerError
-                );
+                return await DeactivateAsync(customerId);
             }
 
-            return MapToResponseDto(customer);
+            return await ReactivateAsync(customerId);
         }
 
         public async Task<CustomerResponseDto>
@@ -306,8 +283,10 @@ namespace Event_and_parking_reservation_system.Services
         }
 
         private static CustomerResponseDto
-            MapToResponseDto(Customer customer)
+    MapToResponseDto(Customer customer)
         {
+            DateTime utcNow = DateTime.UtcNow;
+
             return new CustomerResponseDto
             {
                 CustomerId = customer.Id,
@@ -316,20 +295,69 @@ namespace Event_and_parking_reservation_system.Services
 
                 Email = customer.Email,
 
-                PhoneNumber =
-                    customer.PhoneNumber,
+                PhoneNumber = customer.PhoneNumber,
 
                 Role = customer.Role.ToString(),
 
-                Status =
-                    customer.Status.ToString(),
+                Status = customer.Status.ToString(),
 
-                EmailVerified =
-                    customer.EmailVerified,
+                EmailVerified = customer.EmailVerified,
 
                 CreatedAt = customer.CreatedAt,
 
-                UpdatedAt = customer.UpdatedAt
+                UpdatedAt = customer.UpdatedAt,
+
+                BookingSummary =
+                    new CustomerBookingSummaryDto
+                    {
+                        TotalBookings =
+                            customer.Bookings.Count,
+
+                        PendingBookings =
+                            customer.Bookings.Count(
+                                booking =>
+                                    booking.Status ==
+                                    BookingStatus.Pending
+                            ),
+
+                        ConfirmedBookings =
+                            customer.Bookings.Count(
+                                booking =>
+                                    booking.Status ==
+                                    BookingStatus.Confirmed
+                            ),
+
+                        CancelledBookings =
+                            customer.Bookings.Count(
+                                booking =>
+                                    booking.Status ==
+                                    BookingStatus.Cancelled
+                            ),
+
+                        ExpiredBookings =
+                            customer.Bookings.Count(
+                                booking =>
+                                    booking.Status ==
+                                    BookingStatus.Expired
+                            ),
+
+                        ActiveUpcomingBookings =
+                            customer.Bookings.Count(
+                                booking =>
+                                    (
+                                        booking.Status ==
+                                            BookingStatus.Pending
+                                        ||
+                                        booking.Status ==
+                                            BookingStatus.Confirmed
+                                    )
+                                    &&
+                                    booking.Event is not null
+                                    &&
+                                    booking.Event.EndDateTime >
+                                        utcNow
+                            )
+                    }
             };
         }
 
@@ -370,10 +398,12 @@ namespace Event_and_parking_reservation_system.Services
         }
 
         public async Task<CustomerResponseDto> DeactivateAsync(
-    int customerId)
+     int customerId)
         {
             Customer? customer =
-                await _customerRepository.GetByIdAsync(customerId);
+                await _customerRepository.GetByIdAsync(
+                    customerId
+                );
 
             if (customer is null)
             {
@@ -390,16 +420,36 @@ namespace Event_and_parking_reservation_system.Services
                 );
             }
 
-            if (customer.Status == CustomerStatus.Deactivated)
+            if (customer.Status ==
+                CustomerStatus.Deactivated)
             {
                 return MapToResponseDto(customer);
             }
 
-            customer.Status = CustomerStatus.Deactivated;
-            customer.UpdatedAt = DateTime.UtcNow;
+            DateTime utcNow = DateTime.UtcNow;
+
+            bool hasActiveFutureBookings =
+                await _customerRepository
+                    .HasActiveFutureBookingsAsync(
+                        customerId,
+                        utcNow
+                    );
+
+            if (hasActiveFutureBookings)
+            {
+                throw new ConflictException(
+                    "A customer with active or upcoming bookings cannot be deactivated."
+                );
+            }
+
+            customer.Status =
+                CustomerStatus.Deactivated;
+
+            customer.UpdatedAt = utcNow;
 
             bool saved =
-                await _customerRepository.SaveChangesAsync();
+                await _customerRepository
+                    .SaveChangesAsync();
 
             if (!saved)
             {
@@ -454,5 +504,7 @@ namespace Event_and_parking_reservation_system.Services
 
             return MapToResponseDto(customer);
         }
+
+
     }
 }

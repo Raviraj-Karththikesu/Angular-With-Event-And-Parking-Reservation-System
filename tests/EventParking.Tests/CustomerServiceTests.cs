@@ -1,10 +1,13 @@
-﻿using Event_and_parking_reservation_system.DTOs.Customers;
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Event_and_parking_reservation_system.DTOs.Customers;
+using Event_and_parking_reservation_system.Enums;
 using Event_and_parking_reservation_system.Exceptions;
 using Event_and_parking_reservation_system.Interfaces.Repositories;
 using Event_and_parking_reservation_system.Interfaces.Services;
 using Event_and_parking_reservation_system.Models;
 using Event_and_parking_reservation_system.Services;
-using Event_and_parking_reservation_system.Enums;
 using Microsoft.AspNetCore.Identity;
 using Moq;
 using Xunit;
@@ -43,9 +46,10 @@ namespace EventParking.Tests
         }
 
         [Fact]
-        public async Task GetByIdAsync_WhenCustomerExists_ReturnsCustomer()
+        public async Task GetByIdAsync_WhenCustomerExists_ReturnsCustomerWithBookingSummary()
         {
             DateTime createdAt = DateTime.UtcNow;
+            DateTime now = DateTime.UtcNow;
 
             Customer customer = new Customer
             {
@@ -53,41 +57,139 @@ namespace EventParking.Tests
                 FullName = "Test Customer",
                 Email = "customer@example.com",
                 PhoneNumber = "0771234567",
+                Role = UserRole.Customer,
+                Status = CustomerStatus.Active,
                 EmailVerified = true,
-                CreatedAt = createdAt
+                CreatedAt = createdAt,
+
+                Bookings = new List<Booking>
+                {
+                    new Booking
+                    {
+                        Status = BookingStatus.Pending,
+                        Event = new Event
+                        {
+                            EndDateTime =
+                                now.AddDays(2)
+                        }
+                    },
+
+                    new Booking
+                    {
+                        Status = BookingStatus.Confirmed,
+                        Event = new Event
+                        {
+                            EndDateTime =
+                                now.AddDays(3)
+                        }
+                    },
+
+                    new Booking
+                    {
+                        Status = BookingStatus.Confirmed,
+                        Event = new Event
+                        {
+                            EndDateTime =
+                                now.AddDays(-1)
+                        }
+                    },
+
+                    new Booking
+                    {
+                        Status = BookingStatus.Cancelled,
+                        Event = new Event
+                        {
+                            EndDateTime =
+                                now.AddDays(5)
+                        }
+                    },
+
+                    new Booking
+                    {
+                        Status = BookingStatus.Expired,
+                        Event = new Event
+                        {
+                            EndDateTime =
+                                now.AddDays(5)
+                        }
+                    }
+                }
             };
 
             _customerRepositoryMock
                 .Setup(repository =>
-                    repository.GetByIdAsync(1))
+                    repository
+                        .GetByIdWithBookingsAsync(1))
                 .ReturnsAsync(customer);
 
             CustomerResponseDto? result =
-                await _customerService.GetByIdAsync(1);
+                await _customerService
+                    .GetByIdAsync(1);
 
             Assert.NotNull(result);
-            Assert.Equal(1, result.CustomerId);
+
+            Assert.Equal(
+                1,
+                result.CustomerId
+            );
+
             Assert.Equal(
                 "Test Customer",
                 result.FullName
             );
+
             Assert.Equal(
                 "customer@example.com",
                 result.Email
             );
+
             Assert.Equal(
                 "0771234567",
                 result.PhoneNumber
             );
+
             Assert.True(result.EmailVerified);
+
             Assert.Equal(
                 createdAt,
                 result.CreatedAt
             );
 
+            Assert.Equal(
+                5,
+                result.BookingSummary.TotalBookings
+            );
+
+            Assert.Equal(
+                1,
+                result.BookingSummary.PendingBookings
+            );
+
+            Assert.Equal(
+                2,
+                result.BookingSummary.ConfirmedBookings
+            );
+
+            Assert.Equal(
+                1,
+                result.BookingSummary.CancelledBookings
+            );
+
+            Assert.Equal(
+                1,
+                result.BookingSummary.ExpiredBookings
+            );
+
+            Assert.Equal(
+                2,
+                result.BookingSummary
+                    .ActiveUpcomingBookings
+            );
+
             _customerRepositoryMock.Verify(
                 repository =>
-                    repository.GetByIdAsync(1),
+                    repository
+                        .GetByIdWithBookingsAsync(1),
                 Times.Once
             );
         }
@@ -99,19 +201,24 @@ namespace EventParking.Tests
 
             _customerRepositoryMock
                 .Setup(repository =>
-                    repository.GetByIdAsync(customerId))
+                    repository
+                        .GetByIdWithBookingsAsync(
+                            customerId
+                        ))
                 .ReturnsAsync((Customer?)null);
 
             CustomerResponseDto? result =
-                await _customerService.GetByIdAsync(
-                    customerId
-                );
+                await _customerService
+                    .GetByIdAsync(customerId);
 
             Assert.Null(result);
 
             _customerRepositoryMock.Verify(
                 repository =>
-                    repository.GetByIdAsync(customerId),
+                    repository
+                        .GetByIdWithBookingsAsync(
+                            customerId
+                        ),
                 Times.Once
             );
         }
@@ -136,10 +243,10 @@ namespace EventParking.Tests
                 .ReturnsAsync(true);
 
             ConflictException exception =
-                await Assert.ThrowsAsync<ConflictException>(
-                    () => _customerService.RegisterAsync(
-                        registerDto
-                    )
+                await Assert.ThrowsAsync<
+                    ConflictException>(
+                    () => _customerService
+                        .RegisterAsync(registerDto)
                 );
 
             Assert.Equal(
@@ -170,7 +277,6 @@ namespace EventParking.Tests
             );
         }
 
-
         [Fact]
         public async Task DeactivateAsync_WhenCustomerIsActive_DeactivatesCustomer()
         {
@@ -192,11 +298,21 @@ namespace EventParking.Tests
 
             _customerRepositoryMock
                 .Setup(repository =>
+                    repository
+                        .HasActiveFutureBookingsAsync(
+                            5,
+                            It.IsAny<DateTime>()
+                        ))
+                .ReturnsAsync(false);
+
+            _customerRepositoryMock
+                .Setup(repository =>
                     repository.SaveChangesAsync())
                 .ReturnsAsync(true);
 
             CustomerResponseDto result =
-                await _customerService.DeactivateAsync(5);
+                await _customerService
+                    .DeactivateAsync(5);
 
             Assert.Equal(
                 CustomerStatus.Deactivated,
@@ -218,8 +334,70 @@ namespace EventParking.Tests
 
             _customerRepositoryMock.Verify(
                 repository =>
+                    repository
+                        .HasActiveFutureBookingsAsync(
+                            5,
+                            It.IsAny<DateTime>()
+                        ),
+                Times.Once
+            );
+
+            _customerRepositoryMock.Verify(
+                repository =>
                     repository.SaveChangesAsync(),
                 Times.Once
+            );
+        }
+
+        [Fact]
+        public async Task DeactivateAsync_WhenActiveFutureBookingExists_ThrowsConflictException()
+        {
+            Customer customer = new Customer
+            {
+                Id = 5,
+                FullName = "Booked Customer",
+                Email = "booked@example.com",
+                Role = UserRole.Customer,
+                Status = CustomerStatus.Active,
+                EmailVerified = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _customerRepositoryMock
+                .Setup(repository =>
+                    repository.GetByIdAsync(5))
+                .ReturnsAsync(customer);
+
+            _customerRepositoryMock
+                .Setup(repository =>
+                    repository
+                        .HasActiveFutureBookingsAsync(
+                            5,
+                            It.IsAny<DateTime>()
+                        ))
+                .ReturnsAsync(true);
+
+            ConflictException exception =
+                await Assert.ThrowsAsync<
+                    ConflictException>(
+                    () => _customerService
+                        .DeactivateAsync(5)
+                );
+
+            Assert.Equal(
+                "A customer with active or upcoming bookings cannot be deactivated.",
+                exception.Message
+            );
+
+            Assert.Equal(
+                CustomerStatus.Active,
+                customer.Status
+            );
+
+            _customerRepositoryMock.Verify(
+                repository =>
+                    repository.SaveChangesAsync(),
+                Times.Never
             );
         }
 
@@ -248,7 +426,8 @@ namespace EventParking.Tests
                 .ReturnsAsync(true);
 
             CustomerResponseDto result =
-                await _customerService.ReactivateAsync(5);
+                await _customerService
+                    .ReactivateAsync(5);
 
             Assert.Equal(
                 CustomerStatus.Active,
@@ -296,7 +475,8 @@ namespace EventParking.Tests
 
             AppException exception =
                 await Assert.ThrowsAsync<AppException>(
-                    () => _customerService.DeactivateAsync(1)
+                    () => _customerService
+                        .DeactivateAsync(1)
                 );
 
             Assert.Equal(
@@ -307,6 +487,16 @@ namespace EventParking.Tests
             Assert.Equal(
                 CustomerStatus.Active,
                 administrator.Status
+            );
+
+            _customerRepositoryMock.Verify(
+                repository =>
+                    repository
+                        .HasActiveFutureBookingsAsync(
+                            It.IsAny<int>(),
+                            It.IsAny<DateTime>()
+                        ),
+                Times.Never
             );
 
             _customerRepositoryMock.Verify(
@@ -327,10 +517,10 @@ namespace EventParking.Tests
                 .ReturnsAsync((Customer?)null);
 
             NotFoundException exception =
-                await Assert.ThrowsAsync<NotFoundException>(
-                    () => _customerService.DeactivateAsync(
-                        customerId
-                    )
+                await Assert.ThrowsAsync<
+                    NotFoundException>(
+                    () => _customerService
+                        .DeactivateAsync(customerId)
                 );
 
             Assert.Equal(
@@ -342,6 +532,81 @@ namespace EventParking.Tests
                 repository =>
                     repository.GetByIdAsync(customerId),
                 Times.Once
+            );
+
+            _customerRepositoryMock.Verify(
+                repository =>
+                    repository
+                        .HasActiveFutureBookingsAsync(
+                            It.IsAny<int>(),
+                            It.IsAny<DateTime>()
+                        ),
+                Times.Never
+            );
+
+            _customerRepositoryMock.Verify(
+                repository =>
+                    repository.SaveChangesAsync(),
+                Times.Never
+            );
+        }
+
+        [Fact]
+        public async Task UpdateStatusAsync_WhenActiveFutureBookingExists_DoesNotBypassValidation()
+        {
+            const int customerId = 7;
+
+            Customer customer = new Customer
+            {
+                Id = customerId,
+                FullName = "Booked Customer",
+                Email = "booked@example.com",
+                Role = UserRole.Customer,
+                Status = CustomerStatus.Active,
+                EmailVerified = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            UpdateCustomerStatusDto statusDto =
+                new UpdateCustomerStatusDto
+                {
+                    Status = "Deactivated"
+                };
+
+            _customerRepositoryMock
+                .Setup(repository =>
+                    repository.GetByIdAsync(
+                        customerId
+                    ))
+                .ReturnsAsync(customer);
+
+            _customerRepositoryMock
+                .Setup(repository =>
+                    repository
+                        .HasActiveFutureBookingsAsync(
+                            customerId,
+                            It.IsAny<DateTime>()
+                        ))
+                .ReturnsAsync(true);
+
+            ConflictException exception =
+                await Assert.ThrowsAsync<
+                    ConflictException>(
+                    () => _customerService
+                        .UpdateStatusAsync(
+                            customerId,
+                            statusDto
+                        )
+                );
+
+            Assert.Equal(
+                "A customer with active or upcoming bookings cannot be deactivated.",
+                exception.Message
+            );
+
+            Assert.Equal(
+                CustomerStatus.Active,
+                customer.Status
             );
 
             _customerRepositoryMock.Verify(
@@ -409,31 +674,48 @@ namespace EventParking.Tests
                 .Returns(Task.CompletedTask);
 
             CustomerResponseDto result =
-                await _customerService.RegisterAsync(
-                    registerDto
-                );
+                await _customerService
+                    .RegisterAsync(registerDto);
 
-            Assert.Equal(10, result.CustomerId);
-            Assert.Equal("New Customer", result.FullName);
+            Assert.Equal(
+                10,
+                result.CustomerId
+            );
+
+            Assert.Equal(
+                "New Customer",
+                result.FullName
+            );
+
             Assert.Equal(
                 "new@example.com",
                 result.Email
             );
+
             Assert.Equal(
                 "0777654321",
                 result.PhoneNumber
             );
+
             Assert.False(result.EmailVerified);
+
+            Assert.Equal(
+                0,
+                result.BookingSummary.TotalBookings
+            );
 
             _customerRepositoryMock.Verify(
                 repository =>
                     repository.AddAsync(
                         It.Is<Customer>(customer =>
                             customer.Email ==
-                                "new@example.com" &&
+                                "new@example.com"
+                            &&
                             customer.PasswordHash ==
-                                "hashed-password" &&
-                            customer.EmailVerified == false
+                                "hashed-password"
+                            &&
+                            customer.EmailVerified ==
+                                false
                         )
                     ),
                 Times.Once

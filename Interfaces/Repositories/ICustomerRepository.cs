@@ -30,6 +30,14 @@ namespace Event_and_parking_reservation_system.Interfaces.Repositories
     string? search
 );
 
+        Task<bool> HasActiveFutureBookingsAsync(
+    int customerId,
+    DateTime utcNow
+);
+        Task<Customer?> GetByIdWithBookingsAsync(
+    int customerId
+);
+
 
     }
 }
