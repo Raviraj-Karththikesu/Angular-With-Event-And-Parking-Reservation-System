@@ -65,7 +65,18 @@ namespace Event_and_parking_reservation_system.Controllers
             return Ok(await _service.GetEventBookingsAsync(eventId));
         }
 
-      
+        [HttpGet("{id:int}/hold-status")]
+        public async Task<ActionResult<HoldStatusDto>> GetHoldStatus(int id)
+        {
+            int requester = CurrentUserHelper.GetCustomerId(User);
+            bool isAdmin = CurrentUserHelper.IsAdmin(User);
+
+            return Ok(await _service.GetHoldStatusAsync(
+                requester,
+                isAdmin,
+                id));
+        }
+
 
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Cancel(int id)

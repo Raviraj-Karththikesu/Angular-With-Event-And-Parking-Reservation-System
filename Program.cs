@@ -1,17 +1,18 @@
 using Event_and_parking_reservation_system.Data;
 using Event_and_parking_reservation_system.Interfaces.Repositories;
 using Event_and_parking_reservation_system.Interfaces.Services;
+using Event_and_parking_reservation_system.Middleware;
 using Event_and_parking_reservation_system.Models;
+using Event_and_parking_reservation_system.Options;
 using Event_and_parking_reservation_system.Repositories;
 using Event_and_parking_reservation_system.Services;
+using Event_and_parking_reservation_system.Workers;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Event_and_parking_reservation_system.Middleware;
-using System.Text;
-using Event_and_parking_reservation_system.Options;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Text;
 
 namespace Event_and_parking_reservation_system
 {
@@ -86,6 +87,9 @@ namespace Event_and_parking_reservation_system
             builder.Services.AddScoped<IBookingSeatRepository, BookingSeatRepository>();
 
             builder.Services.AddScoped<IBookingSeatService, BookingSeatService>();
+
+            builder.Services.AddScoped<IBookingRepository, BookingRepository>();
+            builder.Services.AddScoped<IBookingService, BookingService>();
 
 
             builder.Services.AddScoped<
@@ -172,6 +176,12 @@ namespace Event_and_parking_reservation_system
         EmailSettings.SectionName
     )
 );
+            builder.Services.Configure<BookingSettings>(
+    builder.Configuration
+        .GetSection("BookingSettings"));
+            builder.Services
+    .AddHostedService
+        <BookingExpiryHostedService>();
 
             var app = builder.Build();
 
