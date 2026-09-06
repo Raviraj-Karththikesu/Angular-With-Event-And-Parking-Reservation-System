@@ -14,16 +14,16 @@ namespace Event_and_parking_reservation_system.Services
     public class BookingService : IBookingService
     {
         private readonly IBookingRepository _repository;
-        private readonly INotificationService _notifications;
+       // private readonly INotificationService _notifications;
         private readonly BookingSettings _settings;
 
         public BookingService(
             IBookingRepository repository,
-            INotificationService notifications,
+           // INotificationService notifications,
             IOptions<BookingSettings> settings)
         {
             _repository = repository;
-            _notifications = notifications;
+           // _notifications = notifications;
             _settings = settings.Value;
         }
 
@@ -155,8 +155,7 @@ namespace Event_and_parking_reservation_system.Services
 
                     await _repository.AddParkingReservationAsync(reservation);
 
-                    parkingSlot.Status =
-                        Enum.Parse<ParkingSlotStatus>("Occupied", true);
+                    parkingSlot.Status = ParkingSlotStatus.Held;
                 }
 
                 await _repository.SaveChangesAsync();
@@ -265,11 +264,11 @@ namespace Event_and_parking_reservation_system.Services
                 booking,
                 Enum.Parse<BookingStatus>("Cancelled", true));
 
-            await _notifications.CreateInternalAsync(
-                booking.CustomerId,
-                "BookingCancelled",
-                "Booking cancelled",
-                $"Booking {booking.BookingNumber} was cancelled.");
+           //await _notifications.CreateInternalAsync(
+           //     booking.CustomerId,
+           //     "BookingCancelled",
+           //     "Booking cancelled",
+           //     $"Booking {booking.BookingNumber} was cancelled.");
         }
 
         public async Task<int> ExpirePendingBookingsAsync()

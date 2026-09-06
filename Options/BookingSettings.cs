@@ -2,5 +2,6 @@
 {
     public class BookingSettings
     {
+        public int HoldMinutes { get; set; }
     }
 }
