@@ -1,5 +1,8 @@
 ﻿using Event_and_parking_reservation_system.DTOs.Events;
+using Event_and_parking_reservation_system.Enums;
 using Event_and_parking_reservation_system.Interfaces.Services;
+using Event_and_parking_reservation_system.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Event_and_parking_reservation_system.Controllers
@@ -33,6 +36,7 @@ namespace Event_and_parking_reservation_system.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<ActionResult<EventResponseDto>> Create(
             CreateEventDto dto)
         {
@@ -45,6 +49,7 @@ namespace Event_and_parking_reservation_system.Controllers
         }
 
         [HttpPut("{id:int}")]
+        [Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<ActionResult<EventResponseDto>> Update(
             int id,
             UpdateEventDto dto)
@@ -55,6 +60,7 @@ namespace Event_and_parking_reservation_system.Controllers
         }
 
         [HttpDelete("{id:int}")]
+        [Authorize(Roles = nameof(UserRole.Admin))]
         public async Task<IActionResult> Delete(int id)
         {
             await _eventService.DeleteAsync(id);
