@@ -97,6 +97,9 @@ namespace Event_and_parking_reservation_system
             builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
             builder.Services.AddScoped<INotificationService, NotificationService>();
 
+            builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
+            builder.Services.AddScoped<IDashboardService, DashboardService>();
+
 
             builder.Services.AddScoped<
                 IPasswordHasher<Customer>,
