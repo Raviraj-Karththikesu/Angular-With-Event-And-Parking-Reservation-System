@@ -97,6 +97,15 @@ namespace Event_and_parking_reservation_system
             builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
             builder.Services.AddScoped<INotificationService, NotificationService>();
 
+            builder.Services.AddScoped<IParkingReservationRepository, ParkingReservationRepository>();
+            builder.Services.AddScoped<IParkingReservationService, ParkingReservationService>();
+
+            builder.Services.AddScoped<ISeatRepository, SeatRepository>();
+            builder.Services.AddScoped<ISeatService, SeatService>();
+
+            builder.Services.AddScoped<IParkingSlotRepository, ParkingSlotRepository>();
+            builder.Services.AddScoped<IParkingSlotService, ParkingSlotService>();
+
             builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
             builder.Services.AddScoped<IDashboardService, DashboardService>();
 
