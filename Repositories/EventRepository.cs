@@ -22,6 +22,15 @@ namespace Event_and_parking_reservation_system.Repositories
                 .Include(e => e.EventCategory)
                 .AsQueryable();
 
+            if (!string.IsNullOrWhiteSpace(filter.Search))
+            {
+                var search = filter.Search.Trim();
+
+                query = query.Where(e =>
+                    e.Name.Contains(search));
+            }
+
+
             if (filter.Date.HasValue)
             {
                 var date = filter.Date.Value.Date;
