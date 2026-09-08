@@ -24,6 +24,25 @@ namespace Event_and_parking_reservation_system
 
             builder.Services.AddControllers();
 
+            const string AngularCorsPolicy =
+    "AngularFrontend";
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy(
+                    AngularCorsPolicy,
+                    policy =>
+                    {
+                        policy
+                            .WithOrigins(
+                                "http://localhost:4200"
+                            )
+                            .AllowAnyHeader()
+                            .AllowAnyMethod();
+                    }
+                );
+            });
+
             builder.Services.AddEndpointsApiExplorer();
 
             builder.Services.AddSwaggerGen(options =>
@@ -212,6 +231,8 @@ namespace Event_and_parking_reservation_system
             }
 
             app.UseHttpsRedirection();
+
+            app.UseCors(AngularCorsPolicy);
 
             app.UseAuthentication();
 
