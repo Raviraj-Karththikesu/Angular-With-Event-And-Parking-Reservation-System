@@ -1,7 +1,10 @@
 ﻿using Event_and_parking_reservation_system.Data;
-using Event_and_parking_reservation_system.DTOs.ParkingReservations;
+using Event_and_parking_reservation_system.DTOs
+    .ParkingReservations;
 using Event_and_parking_reservation_system.Enums;
-using Event_and_parking_reservation_system.Interfaces.Repositories;
+using Event_and_parking_reservation_system.Exceptions;
+using Event_and_parking_reservation_system
+    .Interfaces.Repositories;
 using Event_and_parking_reservation_system.Models;
 using Event_and_parking_reservation_system.Services;
 using Microsoft.EntityFrameworkCore;
@@ -12,18 +15,20 @@ namespace EventParking.Tests
 {
     public class ParkingReservationServiceTests
     {
-        private readonly Mock<IParkingReservationRepository>
-            _parkingReservationRepositoryMock;
+        private readonly Mock<
+            IParkingReservationRepository>
+            _repositoryMock;
 
         public ParkingReservationServiceTests()
         {
-            _parkingReservationRepositoryMock =
-                new Mock<IParkingReservationRepository>();
+            _repositoryMock =
+                new Mock<
+                    IParkingReservationRepository>();
         }
 
-        private AppDbContext CreateContext()
+        private static AppDbContext CreateContext()
         {
-            var options =
+            DbContextOptions<AppDbContext> options =
                 new DbContextOptionsBuilder<AppDbContext>()
                     .UseInMemoryDatabase(
                         Guid.NewGuid().ToString()
@@ -33,18 +38,49 @@ namespace EventParking.Tests
             return new AppDbContext(options);
         }
 
-        [Fact]
-        public async Task ReserveParkingAsync_WhenDataIsValid_CreatesReservation()
+        private ParkingReservationService CreateService(
+            AppDbContext context)
         {
-            using var context = CreateContext();
+            return new ParkingReservationService(
+                _repositoryMock.Object,
+                context
+            );
+        }
 
+        private static async Task SeedBookingAsync(
+            AppDbContext context,
+            int bookingId = 1,
+            int eventId = 1)
+        {
+            context.Bookings.Add(
+                new Booking
+                {
+                    Id = bookingId,
+                    BookingNumber = "BK001",
+                    CustomerId = 1,
+                    EventId = eventId,
+                    Status = BookingStatus.Pending,
+                    TotalAmount = 0
+                }
+            );
+
+            await context.SaveChangesAsync();
+        }
+
+        private static async Task SeedBookingAndSlotAsync(
+            AppDbContext context,
+            int bookingEventId = 1,
+            int slotEventId = 1,
+            ParkingSlotStatus slotStatus =
+                ParkingSlotStatus.Available)
+        {
             context.Bookings.Add(
                 new Booking
                 {
                     Id = 1,
                     BookingNumber = "BK001",
                     CustomerId = 1,
-                    EventId = 1,
+                    EventId = bookingEventId,
                     Status = BookingStatus.Pending,
                     TotalAmount = 0
                 }
@@ -54,45 +90,55 @@ namespace EventParking.Tests
                 new ParkingSlot
                 {
                     Id = 1,
-                    EventId = 1,
+                    EventId = slotEventId,
                     SlotNumber = "P1",
                     Zone = "A",
-                    Fee = 500,
-                    Status = ParkingSlotStatus.Available
+                    Fee = 500m,
+                    Status = slotStatus
                 }
             );
 
             await context.SaveChangesAsync();
+        }
 
-            _parkingReservationRepositoryMock
+        [Fact]
+        public async Task
+            ReserveParkingAsync_WhenDataIsValid_CreatesReservation()
+        {
+            using AppDbContext context =
+                CreateContext();
+
+            await SeedBookingAndSlotAsync(context);
+
+            _repositoryMock
                 .Setup(repository =>
-                    repository.HasActiveReservationAsync(1))
+                    repository
+                        .HasActiveReservationAsync(1))
                 .ReturnsAsync(false);
 
-            _parkingReservationRepositoryMock
+            _repositoryMock
                 .Setup(repository =>
-                    repository.IsSlotActivelyReservedAsync(1))
+                    repository
+                        .IsSlotActivelyReservedAsync(1))
                 .ReturnsAsync(false);
 
-            _parkingReservationRepositoryMock
+            _repositoryMock
                 .Setup(repository =>
                     repository.AddAsync(
-                        It.IsAny<ParkingReservation>()
+                        It.IsAny<
+                            ParkingReservation>()
                     ))
                 .Returns(Task.CompletedTask);
 
-            _parkingReservationRepositoryMock
+            _repositoryMock
                 .Setup(repository =>
                     repository.SaveChangesAsync())
                 .Returns(Task.CompletedTask);
 
-            var service =
-                new ParkingReservationService(
-                    _parkingReservationRepositoryMock.Object,
-                    context
-                );
+            ParkingReservationService service =
+                CreateService(context);
 
-            var dto =
+            CreateParkingReservationDto dto =
                 new CreateParkingReservationDto
                 {
                     BookingId = 1,
@@ -100,39 +146,51 @@ namespace EventParking.Tests
                 };
 
             ParkingReservationResponseDto result =
-                await service.ReserveParkingAsync(dto);
+                await service.ReserveParkingAsync(
+                    dto
+                );
 
             Assert.Equal(1, result.BookingId);
             Assert.Equal(1, result.ParkingSlotId);
             Assert.Equal("P1", result.SlotNumber);
             Assert.Equal("A", result.Zone);
-            Assert.Equal(500, result.FeeAtReservation);
+            Assert.Equal(
+                500m,
+                result.FeeAtReservation
+            );
             Assert.True(result.IsActive);
 
             ParkingSlot slot =
                 await context.ParkingSlots
-                    .FirstAsync(p => p.Id == 1);
+                    .FirstAsync(item =>
+                        item.Id == 1
+                    );
 
             Assert.Equal(
                 ParkingSlotStatus.Reserved,
                 slot.Status
             );
 
-            _parkingReservationRepositoryMock.Verify(
+            _repositoryMock.Verify(
                 repository =>
                     repository.AddAsync(
                         It.Is<ParkingReservation>(
                             reservation =>
-                                reservation.BookingId == 1 &&
-                                reservation.ParkingSlotId == 1 &&
-                                reservation.FeeAtReservation == 500 &&
+                                reservation.BookingId ==
+                                    1 &&
+                                reservation
+                                    .ParkingSlotId ==
+                                    1 &&
+                                reservation
+                                    .FeeAtReservation ==
+                                    500m &&
                                 reservation.IsActive
                         )
                     ),
                 Times.Once
             );
 
-            _parkingReservationRepositoryMock.Verify(
+            _repositoryMock.Verify(
                 repository =>
                     repository.SaveChangesAsync(),
                 Times.Once
@@ -140,27 +198,28 @@ namespace EventParking.Tests
         }
 
         [Fact]
-        public async Task ReserveParkingAsync_WhenBookingDoesNotExist_ThrowsKeyNotFoundException()
+        public async Task
+            ReserveParkingAsync_WhenBookingDoesNotExist_ThrowsNotFoundException()
         {
-            using var context = CreateContext();
+            using AppDbContext context =
+                CreateContext();
 
-            var service =
-                new ParkingReservationService(
-                    _parkingReservationRepositoryMock.Object,
-                    context
-                );
+            ParkingReservationService service =
+                CreateService(context);
 
-            var dto =
+            CreateParkingReservationDto dto =
                 new CreateParkingReservationDto
                 {
                     BookingId = 999,
                     ParkingSlotId = 1
                 };
 
-            KeyNotFoundException exception =
-                await Assert.ThrowsAsync<KeyNotFoundException>(
+            NotFoundException exception =
+                await Assert.ThrowsAsync<
+                    NotFoundException>(
                     () =>
-                        service.ReserveParkingAsync(dto)
+                        service
+                            .ReserveParkingAsync(dto)
                 );
 
             Assert.Equal(
@@ -168,51 +227,41 @@ namespace EventParking.Tests
                 exception.Message
             );
 
-            _parkingReservationRepositoryMock.Verify(
+            _repositoryMock.Verify(
                 repository =>
                     repository.AddAsync(
-                        It.IsAny<ParkingReservation>()
+                        It.IsAny<
+                            ParkingReservation>()
                     ),
                 Times.Never
             );
         }
 
         [Fact]
-        public async Task ReserveParkingAsync_WhenParkingSlotDoesNotExist_ThrowsKeyNotFoundException()
+        public async Task
+            ReserveParkingAsync_WhenParkingSlotDoesNotExist_ThrowsNotFoundException()
         {
-            using var context = CreateContext();
+            using AppDbContext context =
+                CreateContext();
 
-            context.Bookings.Add(
-                new Booking
-                {
-                    Id = 1,
-                    BookingNumber = "BK001",
-                    CustomerId = 1,
-                    EventId = 1,
-                    Status = BookingStatus.Pending,
-                    TotalAmount = 0
-                }
-            );
+            await SeedBookingAsync(context);
 
-            await context.SaveChangesAsync();
+            ParkingReservationService service =
+                CreateService(context);
 
-            var service =
-                new ParkingReservationService(
-                    _parkingReservationRepositoryMock.Object,
-                    context
-                );
-
-            var dto =
+            CreateParkingReservationDto dto =
                 new CreateParkingReservationDto
                 {
                     BookingId = 1,
                     ParkingSlotId = 999
                 };
 
-            KeyNotFoundException exception =
-                await Assert.ThrowsAsync<KeyNotFoundException>(
+            NotFoundException exception =
+                await Assert.ThrowsAsync<
+                    NotFoundException>(
                     () =>
-                        service.ReserveParkingAsync(dto)
+                        service
+                            .ReserveParkingAsync(dto)
                 );
 
             Assert.Equal(
@@ -222,175 +271,118 @@ namespace EventParking.Tests
         }
 
         [Fact]
-        public async Task ReserveParkingAsync_WhenSlotBelongsToDifferentEvent_ThrowsInvalidOperationException()
+        public async Task
+            ReserveParkingAsync_WhenSlotBelongsToDifferentEvent_ThrowsConflictException()
         {
-            using var context = CreateContext();
+            using AppDbContext context =
+                CreateContext();
 
-            context.Bookings.Add(
-                new Booking
-                {
-                    Id = 1,
-                    BookingNumber = "BK001",
-                    CustomerId = 1,
-                    EventId = 1,
-                    Status = BookingStatus.Pending,
-                    TotalAmount = 0
-                }
+            await SeedBookingAndSlotAsync(
+                context,
+                bookingEventId: 1,
+                slotEventId: 2
             );
 
-            context.ParkingSlots.Add(
-                new ParkingSlot
-                {
-                    Id = 1,
-                    EventId = 2,
-                    SlotNumber = "P1",
-                    Zone = "A",
-                    Fee = 500,
-                    Status = ParkingSlotStatus.Available
-                }
-            );
+            ParkingReservationService service =
+                CreateService(context);
 
-            await context.SaveChangesAsync();
-
-            var service =
-                new ParkingReservationService(
-                    _parkingReservationRepositoryMock.Object,
-                    context
-                );
-
-            var dto =
+            CreateParkingReservationDto dto =
                 new CreateParkingReservationDto
                 {
                     BookingId = 1,
                     ParkingSlotId = 1
                 };
 
-            InvalidOperationException exception =
-                await Assert.ThrowsAsync<InvalidOperationException>(
+            ConflictException exception =
+                await Assert.ThrowsAsync<
+                    ConflictException>(
                     () =>
-                        service.ReserveParkingAsync(dto)
+                        service
+                            .ReserveParkingAsync(dto)
                 );
 
             Assert.Equal(
-                "Parking slot does not belong to the booked event.",
+                "Parking slot does not belong " +
+                "to the booked event.",
                 exception.Message
             );
         }
 
         [Fact]
-        public async Task ReserveParkingAsync_WhenBookingAlreadyHasReservation_ThrowsInvalidOperationException()
+        public async Task
+            ReserveParkingAsync_WhenBookingAlreadyHasReservation_ThrowsConflictException()
         {
-            using var context = CreateContext();
+            using AppDbContext context =
+                CreateContext();
 
-            context.Bookings.Add(
-                new Booking
-                {
-                    Id = 1,
-                    BookingNumber = "BK001",
-                    CustomerId = 1,
-                    EventId = 1,
-                    Status = BookingStatus.Pending,
-                    TotalAmount = 0
-                }
-            );
+            await SeedBookingAndSlotAsync(context);
 
-            context.ParkingSlots.Add(
-                new ParkingSlot
-                {
-                    Id = 1,
-                    EventId = 1,
-                    SlotNumber = "P1",
-                    Zone = "A",
-                    Fee = 500,
-                    Status = ParkingSlotStatus.Available
-                }
-            );
-
-            await context.SaveChangesAsync();
-
-            _parkingReservationRepositoryMock
+            _repositoryMock
                 .Setup(repository =>
-                    repository.HasActiveReservationAsync(1))
+                    repository
+                        .HasActiveReservationAsync(1))
                 .ReturnsAsync(true);
 
-            var service =
-                new ParkingReservationService(
-                    _parkingReservationRepositoryMock.Object,
-                    context
-                );
+            ParkingReservationService service =
+                CreateService(context);
 
-            var dto =
+            CreateParkingReservationDto dto =
                 new CreateParkingReservationDto
                 {
                     BookingId = 1,
                     ParkingSlotId = 1
                 };
 
-            InvalidOperationException exception =
-                await Assert.ThrowsAsync<InvalidOperationException>(
+            ConflictException exception =
+                await Assert.ThrowsAsync<
+                    ConflictException>(
                     () =>
-                        service.ReserveParkingAsync(dto)
+                        service
+                            .ReserveParkingAsync(dto)
                 );
 
             Assert.Equal(
-                "This booking already has an active parking reservation.",
+                "This booking already has an " +
+                "active parking reservation.",
                 exception.Message
             );
         }
 
         [Fact]
-        public async Task ReserveParkingAsync_WhenSlotIsNotAvailable_ThrowsInvalidOperationException()
+        public async Task
+            ReserveParkingAsync_WhenSlotIsNotAvailable_ThrowsConflictException()
         {
-            using var context = CreateContext();
+            using AppDbContext context =
+                CreateContext();
 
-            context.Bookings.Add(
-                new Booking
-                {
-                    Id = 1,
-                    BookingNumber = "BK001",
-                    CustomerId = 1,
-                    EventId = 1,
-                    Status = BookingStatus.Pending,
-                    TotalAmount = 0
-                }
+            await SeedBookingAndSlotAsync(
+                context,
+                slotStatus:
+                    ParkingSlotStatus.Reserved
             );
 
-            context.ParkingSlots.Add(
-                new ParkingSlot
-                {
-                    Id = 1,
-                    EventId = 1,
-                    SlotNumber = "P1",
-                    Zone = "A",
-                    Fee = 500,
-                    Status = ParkingSlotStatus.Reserved
-                }
-            );
-
-            await context.SaveChangesAsync();
-
-            _parkingReservationRepositoryMock
+            _repositoryMock
                 .Setup(repository =>
-                    repository.HasActiveReservationAsync(1))
+                    repository
+                        .HasActiveReservationAsync(1))
                 .ReturnsAsync(false);
 
-            var service =
-                new ParkingReservationService(
-                    _parkingReservationRepositoryMock.Object,
-                    context
-                );
+            ParkingReservationService service =
+                CreateService(context);
 
-            var dto =
+            CreateParkingReservationDto dto =
                 new CreateParkingReservationDto
                 {
                     BookingId = 1,
                     ParkingSlotId = 1
                 };
 
-            InvalidOperationException exception =
-                await Assert.ThrowsAsync<InvalidOperationException>(
+            ConflictException exception =
+                await Assert.ThrowsAsync<
+                    ConflictException>(
                     () =>
-                        service.ReserveParkingAsync(dto)
+                        service
+                            .ReserveParkingAsync(dto)
                 );
 
             Assert.Equal(
@@ -400,63 +392,42 @@ namespace EventParking.Tests
         }
 
         [Fact]
-        public async Task ReserveParkingAsync_WhenSlotAlreadyHasActiveReservation_ThrowsInvalidOperationException()
+        public async Task
+            ReserveParkingAsync_WhenSlotAlreadyReserved_ThrowsConflictException()
         {
-            using var context = CreateContext();
+            using AppDbContext context =
+                CreateContext();
 
-            context.Bookings.Add(
-                new Booking
-                {
-                    Id = 1,
-                    BookingNumber = "BK001",
-                    CustomerId = 1,
-                    EventId = 1,
-                    Status = BookingStatus.Pending,
-                    TotalAmount = 0
-                }
-            );
+            await SeedBookingAndSlotAsync(context);
 
-            context.ParkingSlots.Add(
-                new ParkingSlot
-                {
-                    Id = 1,
-                    EventId = 1,
-                    SlotNumber = "P1",
-                    Zone = "A",
-                    Fee = 500,
-                    Status = ParkingSlotStatus.Available
-                }
-            );
-
-            await context.SaveChangesAsync();
-
-            _parkingReservationRepositoryMock
+            _repositoryMock
                 .Setup(repository =>
-                    repository.HasActiveReservationAsync(1))
+                    repository
+                        .HasActiveReservationAsync(1))
                 .ReturnsAsync(false);
 
-            _parkingReservationRepositoryMock
+            _repositoryMock
                 .Setup(repository =>
-                    repository.IsSlotActivelyReservedAsync(1))
+                    repository
+                        .IsSlotActivelyReservedAsync(1))
                 .ReturnsAsync(true);
 
-            var service =
-                new ParkingReservationService(
-                    _parkingReservationRepositoryMock.Object,
-                    context
-                );
+            ParkingReservationService service =
+                CreateService(context);
 
-            var dto =
+            CreateParkingReservationDto dto =
                 new CreateParkingReservationDto
                 {
                     BookingId = 1,
                     ParkingSlotId = 1
                 };
 
-            InvalidOperationException exception =
-                await Assert.ThrowsAsync<InvalidOperationException>(
+            ConflictException exception =
+                await Assert.ThrowsAsync<
+                    ConflictException>(
                     () =>
-                        service.ReserveParkingAsync(dto)
+                        service
+                            .ReserveParkingAsync(dto)
                 );
 
             Assert.Equal(
@@ -466,118 +437,131 @@ namespace EventParking.Tests
         }
 
         [Fact]
-        public async Task GetByBookingIdAsync_WhenReservationExists_ReturnsReservation()
+        public async Task
+            GetByBookingIdAsync_WhenReservationExists_ReturnsReservation()
         {
-            using var context = CreateContext();
+            using AppDbContext context =
+                CreateContext();
 
-            var reservation =
+            ParkingReservation reservation =
                 new ParkingReservation
                 {
                     Id = 1,
                     BookingId = 1,
                     ParkingSlotId = 1,
-                    FeeAtReservation = 500,
+                    FeeAtReservation = 500m,
                     IsActive = true,
                     ReservedAt = DateTime.UtcNow,
-                    ParkingSlot = new ParkingSlot
-                    {
-                        Id = 1,
-                        EventId = 1,
-                        SlotNumber = "P1",
-                        Zone = "A",
-                        Fee = 500,
-                        Status = ParkingSlotStatus.Reserved
-                    }
+                    ParkingSlot =
+                        new ParkingSlot
+                        {
+                            Id = 1,
+                            EventId = 1,
+                            SlotNumber = "P1",
+                            Zone = "A",
+                            Fee = 500m,
+                            Status =
+                                ParkingSlotStatus
+                                    .Reserved
+                        }
                 };
 
-            _parkingReservationRepositoryMock
+            _repositoryMock
                 .Setup(repository =>
-                    repository.GetByBookingIdAsync(1))
+                    repository
+                        .GetByBookingIdAsync(1))
                 .ReturnsAsync(reservation);
 
-            var service =
-                new ParkingReservationService(
-                    _parkingReservationRepositoryMock.Object,
-                    context
-                );
+            ParkingReservationService service =
+                CreateService(context);
 
             ParkingReservationResponseDto? result =
-                await service.GetByBookingIdAsync(1);
+                await service.GetByBookingIdAsync(
+                    1
+                );
 
             Assert.NotNull(result);
             Assert.Equal(1, result.BookingId);
             Assert.Equal(1, result.ParkingSlotId);
             Assert.Equal("P1", result.SlotNumber);
             Assert.Equal("A", result.Zone);
-            Assert.Equal(500, result.FeeAtReservation);
+            Assert.Equal(
+                500m,
+                result.FeeAtReservation
+            );
             Assert.True(result.IsActive);
         }
 
         [Fact]
-        public async Task GetByBookingIdAsync_WhenReservationDoesNotExist_ReturnsNull()
+        public async Task
+            GetByBookingIdAsync_WhenReservationDoesNotExist_ReturnsNull()
         {
-            using var context = CreateContext();
+            using AppDbContext context =
+                CreateContext();
 
-            _parkingReservationRepositoryMock
+            _repositoryMock
                 .Setup(repository =>
-                    repository.GetByBookingIdAsync(999))
-                .ReturnsAsync((ParkingReservation?)null);
-
-            var service =
-                new ParkingReservationService(
-                    _parkingReservationRepositoryMock.Object,
-                    context
+                    repository
+                        .GetByBookingIdAsync(999))
+                .ReturnsAsync(
+                    (ParkingReservation?)null
                 );
 
+            ParkingReservationService service =
+                CreateService(context);
+
             ParkingReservationResponseDto? result =
-                await service.GetByBookingIdAsync(999);
+                await service.GetByBookingIdAsync(
+                    999
+                );
 
             Assert.Null(result);
         }
 
         [Fact]
-        public async Task ReleaseParkingAsync_WhenReservationIsActive_ReleasesParking()
+        public async Task
+            ReleaseParkingAsync_WhenReservationIsActive_ReleasesParking()
         {
-            using var context = CreateContext();
+            using AppDbContext context =
+                CreateContext();
 
-            var parkingSlot =
+            ParkingSlot parkingSlot =
                 new ParkingSlot
                 {
                     Id = 1,
                     EventId = 1,
                     SlotNumber = "P1",
                     Zone = "A",
-                    Fee = 500,
-                    Status = ParkingSlotStatus.Reserved
+                    Fee = 500m,
+                    Status =
+                        ParkingSlotStatus.Reserved
                 };
 
-            var reservation =
+            ParkingReservation reservation =
                 new ParkingReservation
                 {
                     Id = 1,
                     BookingId = 1,
                     ParkingSlotId = 1,
-                    FeeAtReservation = 500,
+                    FeeAtReservation = 500m,
                     IsActive = true,
                     ReservedAt = DateTime.UtcNow,
                     ParkingSlot = parkingSlot
                 };
 
-            _parkingReservationRepositoryMock
+            _repositoryMock
                 .Setup(repository =>
-                    repository.GetByBookingIdAsync(1))
+                    repository
+                        .GetByBookingIdAsync(1))
                 .ReturnsAsync(reservation);
 
-            _parkingReservationRepositoryMock
+            _repositoryMock
                 .Setup(repository =>
                     repository.SaveChangesAsync())
                 .Returns(Task.CompletedTask);
 
-            var service =
-                new ParkingReservationService(
-                    _parkingReservationRepositoryMock.Object,
-                    context
-                );
+            ParkingReservationService service =
+                CreateService(context);
 
             await service.ReleaseParkingAsync(1);
 
@@ -589,13 +573,13 @@ namespace EventParking.Tests
                 parkingSlot.Status
             );
 
-            _parkingReservationRepositoryMock.Verify(
+            _repositoryMock.Verify(
                 repository =>
                     repository.Update(reservation),
                 Times.Once
             );
 
-            _parkingReservationRepositoryMock.Verify(
+            _repositoryMock.Verify(
                 repository =>
                     repository.SaveChangesAsync(),
                 Times.Once
@@ -603,36 +587,42 @@ namespace EventParking.Tests
         }
 
         [Fact]
-        public async Task ReleaseParkingAsync_WhenActiveReservationDoesNotExist_ThrowsKeyNotFoundException()
+        public async Task
+            ReleaseParkingAsync_WhenReservationDoesNotExist_ThrowsNotFoundException()
         {
-            using var context = CreateContext();
+            using AppDbContext context =
+                CreateContext();
 
-            _parkingReservationRepositoryMock
+            _repositoryMock
                 .Setup(repository =>
-                    repository.GetByBookingIdAsync(999))
-                .ReturnsAsync((ParkingReservation?)null);
-
-            var service =
-                new ParkingReservationService(
-                    _parkingReservationRepositoryMock.Object,
-                    context
+                    repository
+                        .GetByBookingIdAsync(999))
+                .ReturnsAsync(
+                    (ParkingReservation?)null
                 );
 
-            KeyNotFoundException exception =
-                await Assert.ThrowsAsync<KeyNotFoundException>(
+            ParkingReservationService service =
+                CreateService(context);
+
+            NotFoundException exception =
+                await Assert.ThrowsAsync<
+                    NotFoundException>(
                     () =>
-                        service.ReleaseParkingAsync(999)
+                        service
+                            .ReleaseParkingAsync(999)
                 );
 
             Assert.Equal(
-                "Active parking reservation not found.",
+                "Active parking reservation " +
+                "not found.",
                 exception.Message
             );
 
-            _parkingReservationRepositoryMock.Verify(
+            _repositoryMock.Verify(
                 repository =>
                     repository.Update(
-                        It.IsAny<ParkingReservation>()
+                        It.IsAny<
+                            ParkingReservation>()
                     ),
                 Times.Never
             );
