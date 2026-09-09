@@ -142,7 +142,8 @@ namespace Event_and_parking_reservation_system
     JwtTokenService
 >();
             builder.Services.AddScoped<
-                IEmailService, DevelopmentEmailService>();
+    IEmailService,
+    SmtpEmailService>();
 
             builder.Services.AddScoped<
             IEmailVerificationService,
