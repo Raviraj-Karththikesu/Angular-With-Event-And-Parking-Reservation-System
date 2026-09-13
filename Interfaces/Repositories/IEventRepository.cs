@@ -22,5 +22,9 @@ namespace Event_and_parking_reservation_system.Interfaces.Repositories
             int? excludeEventId = null);
 
         Task<int> GetBookedSeatCountAsync(int eventId);
+
+        Task<bool> HasBookingsAsync(int eventId);
+
+        Task DeleteWithResourcesAsync(Event eventEntity);
     }
 }
