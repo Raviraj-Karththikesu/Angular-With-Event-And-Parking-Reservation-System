@@ -190,17 +190,30 @@ namespace Event_and_parking_reservation_system.Services
 
         public async Task DeleteAsync(int id)
         {
-            var eventEntity = await _eventRepository.GetByIdAsync(id);
+            var eventEntity =
+                await _eventRepository.GetByIdAsync(id);
 
             if (eventEntity is null)
             {
-                throw new NotFoundException("Event was not found.");
+                throw new NotFoundException(
+                    "Event was not found.");
             }
 
-            await _eventRepository.DeleteAsync(eventEntity);
+            var hasBookings =
+                await _eventRepository.HasBookingsAsync(id);
+
+            if (hasBookings)
+            {
+                throw new ConflictException(
+                    "This event cannot be deleted because it has existing bookings.");
+            }
+
+            await _eventRepository
+                .DeleteWithResourcesAsync(eventEntity);
         }
 
-        private static EventResponseDto MapToResponseDto(Event eventEntity)
+        private static EventResponseDto MapToResponseDto(
+            Event eventEntity)
         {
             return new EventResponseDto
             {
@@ -208,17 +221,27 @@ namespace Event_and_parking_reservation_system.Services
                 Name = eventEntity.Name,
                 Description = eventEntity.Description,
                 VenueId = eventEntity.VenueId,
-                VenueName = eventEntity.Venue?.Name ?? string.Empty,
-                EventCategoryId = eventEntity.EventCategoryId,
+                VenueName =
+                    eventEntity.Venue?.Name ?? string.Empty,
+                EventCategoryId =
+                    eventEntity.EventCategoryId,
                 CategoryName =
-                    eventEntity.EventCategory?.Name ?? string.Empty,
-                StartDateTime = eventEntity.StartDateTime,
-                EndDateTime = eventEntity.EndDateTime,
-                TicketPrice = eventEntity.TicketPrice,
-                ParkingFee = eventEntity.ParkingFee,
-                Capacity = eventEntity.Capacity,
-                CreatedAt = eventEntity.CreatedAt,
-                UpdatedAt = eventEntity.UpdatedAt
+                    eventEntity.EventCategory?.Name
+                    ?? string.Empty,
+                StartDateTime =
+                    eventEntity.StartDateTime,
+                EndDateTime =
+                    eventEntity.EndDateTime,
+                TicketPrice =
+                    eventEntity.TicketPrice,
+                ParkingFee =
+                    eventEntity.ParkingFee,
+                Capacity =
+                    eventEntity.Capacity,
+                CreatedAt =
+                    eventEntity.CreatedAt,
+                UpdatedAt =
+                    eventEntity.UpdatedAt
             };
         }
     }
