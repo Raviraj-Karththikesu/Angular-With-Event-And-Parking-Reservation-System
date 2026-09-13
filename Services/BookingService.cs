@@ -47,6 +47,11 @@ namespace Event_and_parking_reservation_system.Services
             if (customer is null)
                 throw new NotFoundException("Customer was not found.");
 
+            if (customer.Status != CustomerStatus.Active)
+                throw new AppException(
+                    "This customer account is not active.",
+                    StatusCodes.Status403Forbidden);
+
             if (!customer.EmailVerified)
                 throw new AppException(
                     "Please verify your email address before creating a booking.",
