@@ -539,15 +539,27 @@ namespace EventParking.Tests
                 .ReturnsAsync(eventEntity);
 
             _eventRepositoryMock
+                .Setup(repository => repository.HasBookingsAsync(1))
+                .ReturnsAsync(false);
+
+            _eventRepositoryMock
                 .Setup(repository =>
-                    repository.DeleteAsync(eventEntity))
+                    repository.DeleteWithResourcesAsync(eventEntity))
                 .Returns(Task.CompletedTask);
 
             await _eventService.DeleteAsync(1);
 
             _eventRepositoryMock.Verify(
+                repository => repository.GetByIdAsync(1),
+                Times.Once);
+
+            _eventRepositoryMock.Verify(
+                repository => repository.HasBookingsAsync(1),
+                Times.Once);
+
+            _eventRepositoryMock.Verify(
                 repository =>
-                    repository.DeleteAsync(eventEntity),
+                    repository.DeleteWithResourcesAsync(eventEntity),
                 Times.Once);
         }
 
